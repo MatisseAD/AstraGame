@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: astragame-realtime
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: PORT
+        value: "3001"
