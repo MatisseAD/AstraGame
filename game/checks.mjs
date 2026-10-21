@@ -22,5 +22,44 @@ export const checks=[
  ['destroyed core ends match and freezes economy',()=>{let g=fixture();g.buildings[1].hp=0;tick(g,.05);ok(g.phase==='ended'&&g.winner===0);let gold=g.players[0].gold;tick(g,.1);ok(g.players[0].gold===gold)}],
  ['simultaneous destruction is a draw',()=>{let g=fixture();g.buildings.forEach(b=>b.hp=0);tick(g,.05);ok(g.winner===-1)}],
  ['snapshot does not expose control input',()=>{let g=fixture();ok(!Object.hasOwn(snapshot(g).players[0],'input'))}],
+ ['weapon catalog has five independent progression paths',()=>{
+  let g=fixture(),p=g.players[0];
+  ok(Object.keys(p.weaponLevels).length===5);
+  ok(p.weapon==='blade'&&p.weaponLevels.blade===1);
+  ok(command(g,'a',{type:'equip',kind:'bow'})); // initially locked
+  const gold=p.gold;ok(!command(g,'a',{type:'unlock',kind:'bow'}));
+  ok(p.gold===gold-125&&p.weapon==='bow'&&p.weaponLevels.bow===1);
+  ok(!command(g,'a',{type:'equip',kind:'blade'}));
+  ok(p.weapon==='blade'&&p.weaponLevels.blade===1);
+  ok(!command(g,'a',{type:'equip',kind:'bow'}));ok(p.weaponLevels.bow===1);
+ }],
+ ['weapon upgrades deduct gold and are capped at level 5',()=>{
+  let g=fixture(),p=g.players[0];p.gold=3000;
+  for(let i=0;i<4;i++)ok(!command(g,'a',{type:'weapon'}));
+  ok(p.level===5&&p.weaponLevels.blade===5);
+  const gold=p.gold;ok(command(g,'a',{type:'weapon'}));ok(p.gold===gold);
+ }],
+ ['weapon actions cannot unlock prototype keys or bypass prices',()=>{
+  let g=fixture(),p=g.players[0];p.gold=0;
+  for(const kind of ['__proto__','constructor','nonexistent'])ok(command(g,'a',{type:'unlock',kind}));
+  ok(command(g,'a',{type:'unlock',kind:'staff'}));
+  ok(command(g,'a',{type:'equip',kind:'staff'}));
+  ok(p.weapon==='blade'&&p.weaponLevels.staff===0);
+ }],
+ ['bow attacks distant mobs whereas blade cannot',()=>{
+  let g=fixture(),p=g.players[0];g.resources=[];g.buildings=[];
+  const mob={id:9999,owner:'wild',target:0,kind:'brutes',x:p.x+215,y:p.y,radius:12,hp:500,maxHp:500,damage:0,speed:0,cool:0,slow:0,age:0};
+  g.mobs=[mob];command(g,'a',{type:'input',x:0,y:0,angle:0,attack:true});tick(g,.05);
+  ok(mob.hp===500,'blade should not reach remote mob');
+  p.weapon='bow';p.weaponLevels.bow=1;p.attackCd=0;tick(g,.05);
+  ok(mob.hp<500,'bow should hit target at range');
+ }],
+ ['hammer hits multiple mobs within a cone',()=>{
+  let g=fixture(),p=g.players[0];g.resources=[];g.buildings=[];
+  g.mobs=[60,75].map((dx,i)=>({id:10001+i,owner:'wild',target:0,kind:'brutes',x:p.x+dx,y:p.y,radius:12,hp:500,maxHp:500,damage:0,speed:0,cool:0,slow:0,age:0}));
+  p.weapon='hammer';p.weaponLevels.hammer=1;
+  command(g,'a',{type:'input',x:0,y:0,angle:0,attack:true});tick(g,.05);
+  ok(g.mobs.every(m=>m.hp<500),'hammer must damage both mobs');
+ }],
  ['full simulation remains finite',()=>{let g=fixture();g.players[1].bot=true;for(let i=0;i<6000&&g.phase==='playing';i++)tick(g,.05);ok(g.time>60);for(let p of g.players)for(let k of ['x','y','gold','wood','stone','hp'])ok(Number.isFinite(p[k]),k);ok(g.mobs.length<=180)}]
 ];
