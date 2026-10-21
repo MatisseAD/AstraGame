@@ -8,13 +8,33 @@ Jeu PC original de construction, récolte et survie, inspiré des mécaniques de
 - Déplacement ZQSD/WASD (position physique des touches) ou flèches.
 - Récolte de bois et pierre, ressources qui repoussent, revenus d’or et mines.
 - Bastion, remparts, arbalètes, canons avec dégâts de zone, tours de givre et mines.
-- Cinq niveaux de bâtiment ; le niveau du bastion limite celui des autres bâtiments.
-- Combat au corps à corps, améliorations d’arme, soin et réapparition.
+- Cinq niveaux de bâtiment, chacun avec des éléments graphiques et silhouettes propres ; le niveau du bastion limite celui des autres bâtiments.
+- Textures SVG originales incluses dans `public/assets/` (herbe, sol, pierre, bois, métal), sprites Canvas détaillés dans `game/art.mjs`, effets animés pour projectiles et magie.
+- Arsenal de cinq armes indépendantes (lame, arc, lance, marteau, bâton), avec déblocage, équipement, améliorations jusqu’au niveau 5 et spécialisations distinctes.
+- Combats au corps à corps, à distance, dégâts de zone, ralentissement, soin et réapparition.
 - Trois vagues offensives : meute, colosses, nuée.
 - Trêve initiale de 30 secondes, jour de 60 s puis nuit de 45 s et vagues sauvages.
 - Mini-carte, barres de vie, indicateurs de ressources, effets et son optionnel.
 - Salons privés par code, deux joueurs prêts avant de démarrer, reconnexion par jeton.
 - Entraînement local contre une IA, disponible même sans serveur de jeu.
+
+## Graphismes, bâtiments et arsenal (mise à jour 0.2)
+
+Le moteur graphique reste en **Canvas 2D**. Les textures sont fournies localement en SVG (sans CDN ni dépendance externe). Les arbres, rochers, personnages, créatures et bâtiments sont composés de sprites vectoriels originaux. Chaque bâtiment a cinq états visuels correspondant à ses cinq niveaux : matériaux, structures supplémentaires, armes, ornements et énergie lumineuse évoluent selon le type de bâtiment. Les performances sont aidées par le culling du terrain visible.
+
+Les armes se débloquent et s'améliorent **séparément** : changer d'arme conserve le niveau de chaque équipement. Les coûts et les dégâts sont calculés dans le moteur autoritaire `game/engine.mjs`, tant en solo que sur le serveur multijoueur.
+
+| Arme | Spécialité | Déblocage |
+| --- | --- | --- |
+| Lame du gardien | Polyvalente, récolte rapide | Gratuite |
+| Arc du rôdeur | Portée longue, tirs ciblés | 125 or |
+| Lance du faucon | Portée de mêlée prolongée | 95 or |
+| Marteau de siège | Démolition et dégâts de zone | 170 or |
+| Bâton des tempêtes | Éclairs de zone et ralentissement | 220 or |
+
+**Contrôles :** ZQSD/WASD pour se déplacer, clic gauche pour attaquer/récolter, `X` pour changer d'arme, `E` pour améliorer le bâtiment sélectionné, `F` pour se soigner. Pour récolter avec un équipement à distance, rééquiper une arme de mêlée.
+
+Les vérifications automatisées (`npm test`, `npm run build`) sont exécutées par GitHub Actions à chaque push.
 
 ## Architecture de déploiement : deux services
 
