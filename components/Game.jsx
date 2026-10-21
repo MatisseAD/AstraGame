@@ -91,7 +91,7 @@ export default function Game(){
    if(e.code==='KeyE'&&opts.selected)send({type:'upgrade',id:opts.selected});
    if(e.code==='KeyR'&&opts.selected)send({type:'repair',id:opts.selected});
    if(e.code==='KeyF')send({type:'heal'});
-   if(e.code==='KeyQ'){
+   if(e.code==='KeyX'){
     const me=state?.players.find(p=>p.id===myId);
     if(me){const available=Object.keys(WEAPONS).filter(k=>me.weaponLevels?.[k]);const next=available[(available.indexOf(me.weapon)+1)%available.length];if(next)send({type:'equip',kind:next})}
    }
@@ -104,8 +104,8 @@ export default function Game(){
   window.addEventListener('pointerup',onUp);window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKeyUp);window.addEventListener('blur',resetInput);
   const inputTimer=setInterval(()=>{
    if(!state||state.phase!=='playing')return;const p=state.players.find(p=>p.id===myId);if(!p)return;
-   const x=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
-   const y=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
+   const x=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('KeyQ')||keys.has('ArrowLeft'));
+   const y=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('KeyZ')||keys.has('ArrowUp'));
    const angle=opts.pointer?Math.atan2(opts.pointer.y-p.y,opts.pointer.x-p.x):p.angle;
    send({type:'input',x,y,angle,attack:(held||auto)&&!opts.build});
   },50);
@@ -162,8 +162,8 @@ export default function Game(){
    {player&&<div className="heroStatus"><div><strong>{player.name}</strong><span>{WEAPONS[player.weapon||'blade']?.name} · niv. {player.level}</span></div><div className="hpTrack"><i style={{width:Math.max(0,player.hp/player.maxHp*100)+'%'}}/></div><small>{Math.ceil(player.hp)} / {player.maxHp} PV</small></div>}
    {message&&<div className="toast" role="status" onClick={()=>setMessage('')}>{message}<span>×</span></div>}
    <div className="hotbar">{kinds.map((kind,i)=><button className={build===kind?'active':''} key={kind} onClick={()=>control.current?.choose(kind)}><kbd>{i+1}</kbd><b>{icons[kind]}</b><span>{BUILDINGS[kind].name}</span><small>{BUILDINGS[kind].wood}♣ {BUILDINGS[kind].stone}⬡ {BUILDINGS[kind].gold}◆</small></button>)}</div>
-   <div className="keyHint">ZQSD / WASD · Clic : attaque / récolte · Q : changer d’arme · Espace : auto · Molette : zoom</div>
-   {help&&<div className="helpBox"><button onClick={()=>setHelp(false)}>×</button><h3>Votre première partie</h3><p>1. Approchez un arbre ou une pierre. Visez et maintenez le clic pour récolter.</p><p>2. Construisez près de vous avec 1–5. Les mines génèrent de l’or en continu.</p><p>3. Cliquez sur votre bastion pour l’améliorer et débloquer les niveaux des tours.</p><p>4. Envoyez une vague contre l’adversaire. La nuit, des créatures sauvages attaquent les deux camps.</p><p>E : améliorer · R : réparer · F : soin · Q : changer d’arme · Clic droit : annuler. Débloquez différentes armes dans l’arsenal, puis améliorez-les jusqu’au niveau 5.</p><p>Le premier bastion détruit perd. À 20 minutes, le bastion avec le plus de PV gagne.</p></div>}
+   <div className="keyHint">ZQSD / WASD · Clic : attaque / récolte · X : changer d’arme · Espace : auto · Molette : zoom</div>
+   {help&&<div className="helpBox"><button onClick={()=>setHelp(false)}>×</button><h3>Votre première partie</h3><p>1. Approchez un arbre ou une pierre. Visez et maintenez le clic pour récolter.</p><p>2. Construisez près de vous avec 1–5. Les mines génèrent de l’or en continu.</p><p>3. Cliquez sur votre bastion pour l’améliorer et débloquer les niveaux des tours.</p><p>4. Envoyez une vague contre l’adversaire. La nuit, des créatures sauvages attaquent les deux camps.</p><p>E : améliorer · R : réparer · F : soin · X : changer d’arme · Clic droit : annuler. Débloquez différentes armes dans l’arsenal, puis améliorez-les jusqu’au niveau 5.</p><p>Le premier bastion détruit perd. À 20 minutes, le bastion avec le plus de PV gagne.</p></div>}
    {!hud&&<div className="centerCard"><h2>Ouverture du portail…</h2><p>{status}</p><button className="secondary" onClick={leave}>Retour au menu</button></div>}
    {hud?.phase==='lobby'&&<div className="centerCard"><span className="eyebrow">SALON PRIVÉ</span><h2 className="roomCode">{hud.code}</h2><button className="secondary" onClick={copy}>Copier le code</button><p>Partagez ce code avec votre adversaire.</p><div className="lobbyPlayers">{hud.players.map(p=><div key={p.id}><span>{p.name}</span><b>{p.ready?'Prêt ✓':p.connected?'Connecté':'Déconnecté'}</b></div>)}</div><button className="primary" disabled={hud.players.length<2||player?.ready} onClick={()=>act({type:'ready'})}>{player?.ready?'En attente de l’adversaire…':hud.players.length<2?'En attente d’un second joueur…':'Je suis prêt →'}</button></div>}
    {player?.respawn>0&&hud?.phase==='playing'&&<div className="respawn">Vous êtes tombé · retour dans {Math.ceil(player.respawn)}s</div>}
@@ -184,7 +184,7 @@ export default function Game(){
     <button className="subtle" onClick={()=>act({type:'repair',id:building.id})}>Réparer [R] · 20♣ 15⬡ 25◆</button>
     {building.kind!=='core'&&<button className="subtle" onClick={()=>act({type:'sell',id:building.id})}>Vendre · remboursement 50%</button>}
    </div>:<div className="selection"><p>Cliquez sur un bâtiment pour l’améliorer. Les cinq niveaux possèdent des silhouettes uniques.</p></div>}
-   <div className="sectionTitle">ARSENAL <span>Q POUR CHANGER</span></div>
+   <div className="sectionTitle">ARSENAL <span>X POUR CHANGER</span></div>
    <div className="weaponList">{Object.entries(WEAPONS).map(([kind,w])=>{
     const lvl=player?.weaponLevels?.[kind]||0,active=(player?.weapon||'blade')===kind;
     return <div className={'weaponCard '+(active?'equipped':'')} key={kind}>
