@@ -189,7 +189,7 @@ export default function Game(){
     const lvl=player?.weaponLevels?.[kind]||0,active=(player?.weapon||'blade')===kind;
     return <div className={'weaponCard '+(active?'equipped':'')} key={kind}>
      <div className="weaponOverview"><span className={'weaponGlyph '+kind}>{weaponIcons[kind]}</span><span><strong>{w.name}</strong><small>{w.description}</small></span><b>{lvl?'NIV. '+lvl:'VERROUILLÉ'}</b></div>
-     <div className="weaponStats"><span>ATQ {w.damage}</span><span>PORTÉE {w.range}</span><span>{(1/w.rate).toFixed(1)}/s</span></div>
+     <div className="weaponStats"><span>ATQ {Math.round(w.damage*(1+(Math.max(lvl,1)-1)*.36))}</span><span>PORTÉE {w.range+(Math.max(lvl,1)-1)*(['ranged','magic'].includes(w.style)?16:5)}</span><span>{(1/w.rate).toFixed(1)}/s</span></div>
      {lvl?active?<button className="weaponAction" disabled={lvl>=5||hud?.phase!=='playing'||player?.gold<weaponUpgradeCost(kind,lvl)} onClick={()=>act({type:'weapon'})}>{lvl>=5?'Niveau maximal':'Améliorer · '+weaponUpgradeCost(kind,lvl)+'◆'}</button>
        :<button className="weaponAction" disabled={hud?.phase!=='playing'} onClick={()=>act({type:'equip',kind})}>Équiper cette arme</button>
       :<button className="weaponAction" disabled={hud?.phase!=='playing'||player?.gold<w.unlock} onClick={()=>act({type:'unlock',kind})}>Débloquer · {w.unlock}◆</button>}
