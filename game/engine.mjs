@@ -8,6 +8,14 @@ export const BUILDINGS = {
  mine: { name: 'Mine', wood: 80, stone: 45, gold: 70, hp: 230, radius: 23, range: 0 },
  core: { name: 'Bastion', wood: 0, stone: 0, gold: 0, hp: 2400, radius: 42, range: 210, damage: 16, rate: .9 }
 };
+export const WEAPONS = {
+ blade: { name: 'Lame du gardien', unlock: 0, rate: .36, range: 94, arc: 1.05, damage: 38, hero: 27, structure: 22, harvest: 13, style: 'melee', description: 'Polyvalente · récolte rapide' },
+ bow: { name: 'Arc du rôdeur', unlock: 125, rate: .72, range: 290, damage: 31, hero: 26, structure: 16, harvest: 0, style: 'ranged', description: 'Tirs précis à longue distance' },
+ spear: { name: 'Lance du faucon', unlock: 95, rate: .53, range: 130, arc: .60, damage: 49, hero: 39, structure: 30, harvest: 9, style: 'melee', description: 'Allonge et perforation' },
+ hammer: { name: 'Marteau de siège', unlock: 170, rate: 1.02, range: 85, arc: 1.15, damage: 64, hero: 49, structure: 85, harvest: 19, style: 'cleave', description: 'Attaque de zone · démolition' },
+ staff: { name: 'Bâton des tempêtes', unlock: 220, rate: 1.12, range: 255, damage: 36, hero: 30, structure: 24, harvest: 0, splash: 90, style: 'magic', description: 'Éclairs de zone · ralentissement' }
+};
+export const weaponUpgradeCost = (kind, level) => Math.ceil((WEAPONS[kind]?.unlock || 90) * .45 + 85 * level);
 export const WAVES = {
  runners: { name: 'Meute', gold: 95, count: 5, hp: 105, speed: 100, damage: 13, radius: 11, income: .2 },
  brutes: { name: 'Colosses', gold: 180, count: 2, hp: 550, speed: 48, damage: 45, radius: 20, income: .3 },
@@ -21,7 +29,7 @@ const home=side=>({x:side?2200:400,y:900});
 const angleDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 export function createGame(seed=42){
- const g={version:1,time:0,phase:'lobby',winner:null,players:[],buildings:[],resources:[],mobs:[],effects:[],nextId:1,night:0};
+ const g={version:2,time:0,phase:'lobby',winner:null,players:[],buildings:[],resources:[],mobs:[],effects:[],nextId:1,night:0};
  const random=rng(seed);
  // Mirrored layout: both camps have identical harvesting opportunities.
  for(let i=0;i<64;i++){
@@ -33,7 +41,7 @@ export function createGame(seed=42){
 }
 export function addPlayer(g,id,name,bot=false){
  if(g.phase!=='lobby'||g.players.length>=2||g.players.some(p=>p.id===id))return null;
- let side=g.players.length,h=home(side),p={id,name:String(name||'Explorateur').trim().slice(0,18)||'Explorateur',side,x:h.x,y:h.y+90,angle:0,hp:150,maxHp:150,wood:220,stone:170,gold:220,level:1,kills:0,income:2,respawn:0,attackCd:0,waveCd:0,healCd:0,ready:bot,connected:true,bot,input:{x:0,y:0,angle:0,attack:false},inputAge:0};
+ let side=g.players.length,h=home(side),p={id,name:String(name||'Explorateur').trim().slice(0,18)||'Explorateur',side,x:h.x,y:h.y+90,angle:0,hp:150,maxHp:150,wood:220,stone:170,gold:220,weapon:'blade',weaponLevels:{blade:1,bow:0,spear:0,hammer:0,staff:0},level:1,kills:0,income:2,respawn:0,attackCd:0,waveCd:0,healCd:0,ready:bot,connected:true,bot,input:{x:0,y:0,angle:0,attack:false},inputAge:0};
  g.players.push(p);
  g.buildings.push({id:g.nextId++,owner:id,side,kind:'core',...h,level:1,hp:2400,maxHp:2400,radius:42,cool:0});
  return p;
@@ -93,7 +101,23 @@ export function command(g,id,a){
   p.gold-=w.gold;p.waveCd=12;p.income+=w.income;spawnWave(g,p.id,1-p.side,a.kind,w.count);return'';
  }
  if(a.type==='heal'){if(p.healCd>0)return'Soin en recharge.';if(p.gold<45)return'Il faut 45 or.';p.gold-=45;p.hp=Math.min(p.maxHp,p.hp+90);p.healCd=25;effect(g,'heal',p.x,p.y);return''}
- if(a.type==='weapon'){if(p.level>=5)return'Arme au niveau maximum.';if(p.gold<100*p.level)return'Or insuffisant.';p.gold-=100*p.level;p.level++;return''}
+ if(a.type==='unlock'){
+  if(typeof a.kind!=='string'||!Object.hasOwn(WEAPONS,a.kind))return'Arme inconnue.';
+  if(p.weaponLevels[a.kind]>0)return'Arme déjà débloquée.';
+  const cost=WEAPONS[a.kind].unlock;if(p.gold<cost)return'Or insuffisant.';
+  p.gold-=cost;p.weaponLevels[a.kind]=1;p.weapon=a.kind;p.level=1;effect(g,'equip',p.x,p.y);return'';
+ }
+ if(a.type==='equip'){
+  if(typeof a.kind!=='string'||!Object.hasOwn(WEAPONS,a.kind))return'Arme inconnue.';
+  if(!p.weaponLevels[a.kind])return'Débloquez cette arme.';
+  p.weapon=a.kind;p.level=p.weaponLevels[a.kind];p.attackCd=Math.max(p.attackCd,.2);return'';
+ }
+ if(a.type==='weapon'){
+  const w=WEAPONS[p.weapon]||WEAPONS.blade,level=p.weaponLevels[p.weapon]||1;
+  if(level>=5)return'Arme au niveau maximum.';
+  const cost=weaponUpgradeCost(p.weapon,level);if(p.gold<cost)return'Or insuffisant.';
+  p.gold-=cost;p.weaponLevels[p.weapon]=level+1;p.level=level+1;effect(g,'equip',p.x,p.y);return'';
+ }
  return'Action inconnue.';
 }
 function spawnWave(g,owner,target,kind,count){
@@ -108,17 +132,34 @@ function killPlayer(g,p){
  p.hp=0;p.respawn=6;p.gold=Math.max(0,p.gold-35);p.input={x:0,y:0,angle:0,attack:false};effect(g,'death',p.x,p.y);
 }
 function attack(g,p){
- p.attackCd=.38;effect(g,'swing',p.x,p.y,{angle:p.angle,side:p.side});
- const inReach=e=>distance(p,e)<78+(e.radius||16)&&Math.abs(angleDiff(Math.atan2(e.y-p.y,e.x-p.x),p.angle))<.9;
- const mob=g.mobs.find(m=>m.target===p.side&&m.hp>0&&inReach(m));
- if(mob){mob.hp-=24+p.level*12;return}
- if(g.time>=30){
- const enemy=g.players.find(q=>q.side!==p.side&&q.respawn===0&&inReach(q));
- if(enemy){enemy.hp-=18+p.level*7;if(enemy.hp<=0){killPlayer(g,enemy);p.gold+=25;p.kills++}return}
- const b=g.buildings.find(b=>b.side!==p.side&&inReach(b));if(b){b.hp-=12+p.level*8;return}
+ const w=WEAPONS[p.weapon]||WEAPONS.blade,level=p.weaponLevels?.[p.weapon]||1;
+ const reach=w.range+(level-1)*(w.style==='ranged'||w.style==='magic'?16:5);
+ const angleTo=e=>Math.atan2(e.y-p.y,e.x-p.x);
+ const eligible=e=>distance(p,e)<reach+(e.radius||16)&&(w.arc===undefined||Math.abs(angleDiff(angleTo(e),p.angle))<w.arc);
+ const angleTarget=e=>Math.abs(angleDiff(angleTo(e),p.angle))<(w.arc===undefined?.48:w.arc);
+ const choose=items=>items.filter(e=>e.hp>0&&eligible(e)&&angleTarget(e)).sort((a,b)=>distance(a,p)-distance(b,p))[0];
+ const mobs=g.mobs.filter(m=>m.target===p.side);
+ const heroes=g.time>=30?g.players.filter(q=>q.side!==p.side&&q.respawn===0):[];
+ const structures=g.time>=30?g.buildings.filter(b=>b.side!==p.side):[];
+ const target=choose(mobs)||choose(heroes)||choose(structures);
+ p.attackCd=w.rate;
+ if(w.style==='melee'||w.style==='cleave')effect(g,'swing',p.x,p.y,{angle:p.angle,side:p.side,weapon:p.weapon,range:reach});
+ if(target){
+  if(w.style==='ranged'||w.style==='magic')effect(g,'shot',p.x,p.y,{tx:target.x,ty:target.y,weapon:p.weapon,side:p.side});
+  const targets=w.style==='cleave'?[...mobs,...heroes,...structures].filter(e=>eligible(e)&&angleTarget(e)):w.splash?[target,...[...mobs,...heroes,...structures].filter(e=>e!==target&&distance(e,target)<w.splash)]:[target];
+  for(const e of targets){
+   const isBuilding=g.buildings.includes(e),isHero=g.players.includes(e);
+   const base=isBuilding?w.structure:isHero?w.hero:w.damage;
+   e.hp-=Math.round(base*(1+(level-1)*.36));
+   if(w.style==='magic')e.slow=Math.max(e.slow||0,1.8);
+   if(e.hp<=0&&isHero&&e.respawn===0){killPlayer(g,e);p.gold+=25;p.kills++}
+  }
+  return;
  }
- const r=g.resources.find(r=>r.amount>0&&inReach(r));
- if(r){const amount=Math.min(r.amount,10+p.level*3);r.amount-=amount;p[r.kind]=Math.min(9999,p[r.kind]+amount);if(r.amount<=0)r.respawn=35;effect(g,'harvest',r.x,r.y,{resource:r.kind})}
+ if(w.harvest>0){
+  const r=g.resources.find(r=>r.amount>0&&distance(p,r)<reach+r.radius&&Math.abs(angleDiff(angleTo(r),p.angle))<w.arc);
+  if(r){const amount=Math.min(r.amount,w.harvest+(level-1)*4);r.amount-=amount;p[r.kind]=Math.min(9999,p[r.kind]+amount);if(r.amount<=0)r.respawn=35;effect(g,'harvest',r.x,r.y,{resource:r.kind})}
+ }
 }
 function updateBot(g,p,dt){
  p.botCd=(p.botCd||0)-dt;if(p.botCd>0)return;p.botCd=1.4;
