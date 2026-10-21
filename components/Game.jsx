@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { createGame, addPlayer, command, tick, snapshot, BUILDINGS, WAVES, upgradeCost, distance } from '../game/engine.mjs';
+import { createGame, addPlayer, command, tick, snapshot, BUILDINGS, WAVES, WEAPONS, weaponUpgradeCost, upgradeCost, distance } from '../game/engine.mjs';
 import { createRenderer } from '../game/renderer.mjs';
 
 const icons={wall:'▥',arrow:'➶',cannon:'✹',frost:'❄',mine:'◆'};
+const weaponIcons={blade:'⚔',bow:'➶',spear:'⟐',hammer:'⚒',staff:'✧'};
 const kinds=['wall','arrow','cannon','frost','mine'];
 const zero={x:0,y:0,angle:0,attack:false};
 const configuredServer=process.env.NEXT_PUBLIC_GAME_SERVER_URL||'';
@@ -90,6 +91,10 @@ export default function Game(){
    if(e.code==='KeyE'&&opts.selected)send({type:'upgrade',id:opts.selected});
    if(e.code==='KeyR'&&opts.selected)send({type:'repair',id:opts.selected});
    if(e.code==='KeyF')send({type:'heal'});
+   if(e.code==='KeyQ'){
+    const me=state?.players.find(p=>p.id===myId);
+    if(me){const available=Object.keys(WEAPONS).filter(k=>me.weaponLevels?.[k]);const next=available[(available.indexOf(me.weapon)+1)%available.length];if(next)send({type:'equip',kind:next})}
+   }
   };
   const onKeyUp=e=>keys.delete(e.code);
   const onContext=e=>{e.preventDefault();control.current?.clear();held=false};
@@ -129,7 +134,7 @@ export default function Game(){
  function leave(){if(hud?.phase==='playing'&&!confirm('Quitter la partie ? En ligne, le jeu continue et vous disposez de 60 secondes pour revenir.'))return;setConfig(null);setHud(null);setMessage('')}
  async function copy(){try{await navigator.clipboard.writeText(hud.code);setMessage('Code du salon copié.')}catch{setMessage('Code du salon : '+hud.code)}}
  if(!config)return <main className="landing">
-  <nav className="nav"><a className="brand" href="/">✦ ASTRA<span>GAME</span></a><span className="version">ALPHA 0.1 · PC</span><a className="source" href="https://github.com/MatisseAD/AstraGame" target="_blank" rel="noreferrer">GitHub ↗</a></nav>
+  <nav className="nav"><a className="brand" href="/">✦ ASTRA<span>GAME</span></a><span className="version">ALPHA 0.2 · PC</span><a className="source" href="https://github.com/MatisseAD/AstraGame" target="_blank" rel="noreferrer">GitHub ↗</a></nav>
   <div className="landingGrid">
    <section className="intro"><div className="eyebrow"><i/> STRATÉGIE & SURVIE EN TEMPS RÉEL</div><h1>Construisez.<br/>Résistez.<br/><em>Ripostez.</em></h1><p>Un bastion à protéger. Un rival à faire tomber.<br/>Récoltez, fortifiez et libérez vos créatures dans un duel où chaque ressource compte.</p>
     <div className="features"><div><b>01</b><span>Un monde à explorer</span></div><div><b>02</b><span>Votre propre forteresse</span></div><div><b>03</b><span>Des vagues à envoyer</span></div></div>
@@ -154,11 +159,11 @@ export default function Game(){
   <div className="gameArea"><div className="viewport">
    <canvas ref={canvas} tabIndex={0} aria-label="Terrain de jeu. Déplacement ZQSD ou WASD. Souris pour viser et récolter."/>
    <div className="worldTop"><span className="chip">{hud&&hud.time%105>=60?'☾ NUIT':'☀ JOUR'} {1+(hud?.night||0)}</span><span className="chip">{hud?.time<30?'TRÊVE · '+Math.ceil(30-hud.time)+'s':Math.floor((hud?.time||0)/60)+':'+String(Math.floor((hud?.time||0)%60)).padStart(2,'0')}</span><span className="connection">{status}</span></div>
-   {player&&<div className="heroStatus"><div><strong>{player.name}</strong><span>Arme niv. {player.level}</span></div><div className="hpTrack"><i style={{width:Math.max(0,player.hp/player.maxHp*100)+'%'}}/></div><small>{Math.ceil(player.hp)} / {player.maxHp} PV</small></div>}
+   {player&&<div className="heroStatus"><div><strong>{player.name}</strong><span>{WEAPONS[player.weapon||'blade']?.name} · niv. {player.level}</span></div><div className="hpTrack"><i style={{width:Math.max(0,player.hp/player.maxHp*100)+'%'}}/></div><small>{Math.ceil(player.hp)} / {player.maxHp} PV</small></div>}
    {message&&<div className="toast" role="status" onClick={()=>setMessage('')}>{message}<span>×</span></div>}
    <div className="hotbar">{kinds.map((kind,i)=><button className={build===kind?'active':''} key={kind} onClick={()=>control.current?.choose(kind)}><kbd>{i+1}</kbd><b>{icons[kind]}</b><span>{BUILDINGS[kind].name}</span><small>{BUILDINGS[kind].wood}♣ {BUILDINGS[kind].stone}⬡ {BUILDINGS[kind].gold}◆</small></button>)}</div>
-   <div className="keyHint">ZQSD / WASD · Clic : récolter / attaquer · Espace : attaque auto · Molette : zoom · Échap : annuler</div>
-   {help&&<div className="helpBox"><button onClick={()=>setHelp(false)}>×</button><h3>Votre première partie</h3><p>1. Approchez un arbre ou une pierre. Visez et maintenez le clic pour récolter.</p><p>2. Construisez près de vous avec 1–5. Les mines génèrent de l’or en continu.</p><p>3. Cliquez sur votre bastion pour l’améliorer et débloquer les niveaux des tours.</p><p>4. Envoyez une vague contre l’adversaire. La nuit, des créatures sauvages attaquent les deux camps.</p><p>E : améliorer · R : réparer · F : soin · Clic droit : annuler.</p><p>Le premier bastion détruit perd. À 20 minutes, le bastion avec le plus de PV gagne.</p></div>}
+   <div className="keyHint">ZQSD / WASD · Clic : attaque / récolte · Q : changer d’arme · Espace : auto · Molette : zoom</div>
+   {help&&<div className="helpBox"><button onClick={()=>setHelp(false)}>×</button><h3>Votre première partie</h3><p>1. Approchez un arbre ou une pierre. Visez et maintenez le clic pour récolter.</p><p>2. Construisez près de vous avec 1–5. Les mines génèrent de l’or en continu.</p><p>3. Cliquez sur votre bastion pour l’améliorer et débloquer les niveaux des tours.</p><p>4. Envoyez une vague contre l’adversaire. La nuit, des créatures sauvages attaquent les deux camps.</p><p>E : améliorer · R : réparer · F : soin · Q : changer d’arme · Clic droit : annuler. Débloquez différentes armes dans l’arsenal, puis améliorez-les jusqu’au niveau 5.</p><p>Le premier bastion détruit perd. À 20 minutes, le bastion avec le plus de PV gagne.</p></div>}
    {!hud&&<div className="centerCard"><h2>Ouverture du portail…</h2><p>{status}</p><button className="secondary" onClick={leave}>Retour au menu</button></div>}
    {hud?.phase==='lobby'&&<div className="centerCard"><span className="eyebrow">SALON PRIVÉ</span><h2 className="roomCode">{hud.code}</h2><button className="secondary" onClick={copy}>Copier le code</button><p>Partagez ce code avec votre adversaire.</p><div className="lobbyPlayers">{hud.players.map(p=><div key={p.id}><span>{p.name}</span><b>{p.ready?'Prêt ✓':p.connected?'Connecté':'Déconnecté'}</b></div>)}</div><button className="primary" disabled={hud.players.length<2||player?.ready} onClick={()=>act({type:'ready'})}>{player?.ready?'En attente de l’adversaire…':hud.players.length<2?'En attente d’un second joueur…':'Je suis prêt →'}</button></div>}
    {player?.respawn>0&&hud?.phase==='playing'&&<div className="respawn">Vous êtes tombé · retour dans {Math.ceil(player.respawn)}s</div>}
@@ -170,7 +175,26 @@ export default function Game(){
    <div className="sectionTitle">PORTAIL OFFENSIF <span>{player?.waveCd>0?Math.ceil(player.waveCd)+'s':'PRÊT'}</span></div>
    {Object.entries(WAVES).map(([kind,w])=><button className="waveButton" key={kind} disabled={hud?.phase!=='playing'||player?.waveCd>0||player?.gold<w.gold||hud?.time<30} onClick={()=>act({type:'wave',kind})}><span className={'monster '+kind}>{kind==='brutes'?'⬟':kind==='swarm'?'✧':'♟'}</span><span><strong>{w.name}</strong><small>{w.count} créatures · +{w.income} or/s</small></span><b>{w.gold}◆</b></button>)}
    <div className="sectionTitle">{building?'SÉLECTION':'ÉQUIPEMENT'}</div>
-   {building?<div className="selection"><strong>{BUILDINGS[building.kind].name} · niv. {building.level}</strong><small>{Math.ceil(building.hp)} / {building.maxHp} PV</small><button className="secondary" disabled={building.level>=5} onClick={()=>act({type:'upgrade',id:building.id})}>Améliorer [E]<small>{upgradeCost(building).wood}♣ {upgradeCost(building).stone}⬡ {upgradeCost(building).gold}◆</small></button><button className="subtle" onClick={()=>act({type:'repair',id:building.id})}>Réparer [R] · 20♣ 15⬡ 25◆</button>{building.kind!=='core'&&<button className="subtle" onClick={()=>act({type:'sell',id:building.id})}>Vendre · remboursement de base 50%</button>}</div>:<div className="selection"><p>Cliquez sur un bâtiment pour voir ses améliorations.</p><button className="secondary" onClick={()=>act({type:'weapon'})}>Améliorer l’arme · {(player?.level||1)*100}◆</button></div>}
+      {building?<div className="selection">
+    <strong>{BUILDINGS[building.kind].name} · niveau {building.level}/5</strong>
+    <small>{Math.ceil(building.hp)} / {building.maxHp} PV</small>
+    <div className="tierProgress">{[1,2,3,4,5].map(n=><i key={n} className={n<=building.level?'reached':''} />)}</div>
+    <small>Chaque niveau débloque un nouveau modèle, plus de résistance et {BUILDINGS[building.kind].range?'de portée.':'des détails supplémentaires.'}</small>
+    <button className="secondary" disabled={building.level>=5} onClick={()=>act({type:'upgrade',id:building.id})}> {building.level>=5?'Amélioration maximale':'Évoluer au niveau '+(building.level+1)+' [E]'}{building.level<5&&<small>{upgradeCost(building).wood}♣ {upgradeCost(building).stone}⬡ {upgradeCost(building).gold}◆</small>}</button>
+    <button className="subtle" onClick={()=>act({type:'repair',id:building.id})}>Réparer [R] · 20♣ 15⬡ 25◆</button>
+    {building.kind!=='core'&&<button className="subtle" onClick={()=>act({type:'sell',id:building.id})}>Vendre · remboursement 50%</button>}
+   </div>:<div className="selection"><p>Cliquez sur un bâtiment pour l’améliorer. Les cinq niveaux possèdent des silhouettes uniques.</p></div>}
+   <div className="sectionTitle">ARSENAL <span>Q POUR CHANGER</span></div>
+   <div className="weaponList">{Object.entries(WEAPONS).map(([kind,w])=>{
+    const lvl=player?.weaponLevels?.[kind]||0,active=(player?.weapon||'blade')===kind;
+    return <div className={'weaponCard '+(active?'equipped':'')} key={kind}>
+     <div className="weaponOverview"><span className={'weaponGlyph '+kind}>{weaponIcons[kind]}</span><span><strong>{w.name}</strong><small>{w.description}</small></span><b>{lvl?'NIV. '+lvl:'VERROUILLÉ'}</b></div>
+     <div className="weaponStats"><span>ATQ {w.damage}</span><span>PORTÉE {w.range}</span><span>{(1/w.rate).toFixed(1)}/s</span></div>
+     {lvl?active?<button className="weaponAction" disabled={lvl>=5||hud?.phase!=='playing'||player?.gold<weaponUpgradeCost(kind,lvl)} onClick={()=>act({type:'weapon'})}>{lvl>=5?'Niveau maximal':'Améliorer · '+weaponUpgradeCost(kind,lvl)+'◆'}</button>
+       :<button className="weaponAction" disabled={hud?.phase!=='playing'} onClick={()=>act({type:'equip',kind})}>Équiper cette arme</button>
+      :<button className="weaponAction" disabled={hud?.phase!=='playing'||player?.gold<w.unlock} onClick={()=>act({type:'unlock',kind})}>Débloquer · {w.unlock}◆</button>}
+    </div>
+   })}</div>
    <button className="heal" disabled={player?.healCd>0} onClick={()=>act({type:'heal'})}>✚ Soin [F] · {player?.healCd>0?Math.ceil(player.healCd)+'s':'45◆'}</button>
    <p className="sideNote">La récolte, les défenses et les vagues partagent les mêmes ressources. Choisissez votre priorité.</p>
   </aside></div>
