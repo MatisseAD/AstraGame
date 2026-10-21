@@ -7,3 +7,31 @@
 @media(min-width:1600px){.landingGrid{padding-top:110px}.sidebar{width:290px}}
 @media(max-width:1000px){.landing{padding:0 5%}.landingGrid{gap:35px}.intro h1{font-size:62px}.joinPanel{padding:25px}.sidebar{width:230px;padding:18px 14px}.gameHeader{gap:20px;padding:0 14px}.resourceBar{gap:15px}.resourceBar small{display:none}.hotbar button{width:70px}.connection{max-width:150px}.scene{opacity:.3}.hotbar{left:40%}}
 @media(max-width:760px){.landingGrid{grid-template-columns:1fr;padding-top:35px}.intro{min-height:0}.intro h1{font-size:52px;letter-spacing:-2px}.intro h1 br{display:none}.intro h1 em{display:block}.features,.scene{display:none}.nav{height:76px}.version{display:none}.joinPanel{margin-bottom:20px}.sidebar{width:190px;padding:12px}.gameHeader .brand{display:none}.gameHeader{gap:8px;padding:0 8px}.resourceBar{gap:10px}.headerActions button{padding:7px}.connection{display:none}.hotbar{left:10px;right:10px;transform:none;gap:3px}.hotbar button{width:20%;min-width:0}.hotbar small{display:none}.hotbar span{font-size:7px}.keyHint{font-size:7px;padding:0 8px}.worldTop{left:10px}.heroStatus{left:10px;width:145px}.waveButton{padding:9px 5px;gap:5px}.waveButton small{font-size:7px}.monster{font-size:20px}.toast{font-size:10px}.gameShell{min-width:580px}}
+
+/* AstraGame 0.2 — arsenal and evolution HUD */
+.viewport{background:#243f31 url('/assets/grass.svg') repeat;background-size:256px;box-shadow:inset 0 0 90px #091812}
+.sidebar{background:linear-gradient(160deg,#1d3028,#101d18 65%);border-left:1px solid #93b89d33}
+.sidebar .sectionTitle{border-top:1px solid #aac39f24;padding-top:14px}
+.weaponList{display:grid;gap:9px}
+.weaponCard{background:linear-gradient(135deg,#24392e,#182a24);border:1px solid #8eae8f31;padding:10px;border-radius:10px;transition:border-color .2s,background .2s}
+.weaponCard.equipped{border-color:#bde89dba;background:linear-gradient(135deg,#354d36,#233c2e);box-shadow:inset 0 0 14px #b5ed7120}
+.weaponOverview{display:flex;align-items:center;gap:8px}
+.weaponOverview>span:nth-child(2){flex:1;min-width:0}
+.weaponOverview strong{display:block;font-size:11px;line-height:1.3}
+.weaponOverview small{display:block;font-size:9px;line-height:1.4;color:#a4bba7;margin-top:3px}
+.weaponOverview>b{font-size:8px;white-space:nowrap;align-self:flex-start;color:#d4ddad}
+.weaponGlyph{width:35px;height:35px;flex-shrink:0;display:grid;place-items:center;background:#192d27;border:1px solid #97b4a266;border-radius:8px;font-size:21px;color:#e9d6a5}
+.weaponGlyph.bow{color:#b4e5b6}.weaponGlyph.spear{color:#b6d1f1}.weaponGlyph.hammer{color:#e0b08a}.weaponGlyph.staff{color:#9de5fa}
+.weaponStats{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0 0}
+.weaponStats span{font-size:8px;background:#0c1e1a70;border:1px solid #a3b49b20;border-radius:5px;padding:4px 5px;color:#c2cdbb}
+.weaponAction{display:block;margin-top:10px;padding:9px 7px;width:100%;background:#aecd85;color:#1b3125;font-size:10px;font-weight:700;border-radius:6px;transition:background .15s}
+.weaponAction:hover:not(:disabled){background:#d8f2a8}
+.weaponCard.equipped .weaponAction{background:#c8e99b}
+.tierProgress{display:flex;gap:4px;margin:10px 0}
+.tierProgress i{display:block;height:5px;flex:1;border-radius:5px;background:#5a6957}
+.tierProgress i.reached{background:linear-gradient(90deg,#72ae8c,#d4e99b)}
+.heroStatus{width:216px;backdrop-filter:blur(10px)}
+.heroStatus>div:first-child{gap:5px;align-items:center}
+.heroStatus>div:first-child span{text-align:right;line-height:1.4;max-width:135px}
+@media(max-width:1000px){.weaponOverview{flex-wrap:wrap}.weaponOverview>b{margin-left:43px}.weaponGlyph{width:31px;height:31px}}
+@media(max-width:760px){.sidebar{width:205px}.weaponOverview>span:nth-child(2){flex-basis:calc(100% - 45px)}.weaponOverview>b{margin-left:0}.heroStatus{width:165px}}
